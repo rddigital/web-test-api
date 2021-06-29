@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+    <style>
+        div {
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body style="position: relative; background-color:antiquewhite; padding: 10px;">
+    <div class="form-group" style="background-color: aliceblue;">
+        <h4>MQTT Configuration
+            <span>
+                <button class="btn-debug" data-toggle="collapse" data-target="#collapseExample" >+</button>
+                <input id="mqtt_connectBtn" type="checkbox" data-toggle="toggle" data-on="Disconnect" data-off="Connect" data-onstyle="warning" data-offstyle="success">
+            </span>
+        </h4>
+        <div class="collapse" id="collapseExample">
+            <div class="form-row">
+                <div class="col-md-4">
+                    <label>URL</label>
+                    <input id="mqtt_url" type="text" class="form-control" value="tcp://localhost:1883">
+                </div>
+                <div class="col-md-1">
+                    <label>QoS</label>
+                    <select id="mqtt_qos" class="form-control">
+                    <option selected>0</option>
+                    <option>1</option>
+                    <option>2</option>
+                  </select>
+                </div>
+                <div class="col-md-1">
+                    <label>TimePubSub</label>
+                    <input id="mqtt_timePubSub" type="number" class="form-control" value="15">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="col">
+                    <label>Username</label>
+                    <input id="mqtt_username" type="text " class="form-control ">
+                </div>
+                <div class="col ">
+                    <label>Password</label>
+                    <input id="mqtt_password" type="text " class="form-control ">
+                </div>
+            </div>
+            <div class="form-row ">
+                <div class="col">
+                    <label>Publish Topic</label>
+                    <input id="mqtt_publishTopic" type="text " class="form-control ">
+                </div>
+                <div class="col">
+                    <label>Response Topic Prefix</label>
+                    <input id="mqtt_responseTopic" type="text " class="form-control ">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================== -->
+    <div class="form-group " style="background-color: aliceblue; ">
+        <h4>HTTP Request</h4>
+        <div class="form-row ">
+            <div class="col-md-1 ">
+                <label>Method</label>
+                <select id="http_method">
+                    <option>GET</option>
+                    <option>POST</option>
+                    <option>PUT</option>
+                    <option>PATCH</option>
+                    <option>DELETE</option>
+                </select>
+            </div>
+            <div class="col-md-4 ">
+                <label>API</label>
+                <input id="http_api" type="number " class="form-control ">
+            </div>
+            <div class="col-md-4 ">
+                <label>RequestID</label>
+                <input id="http_requestID" type="text " class="form-control ">
+            </div>
+            <div class="col-md-2 ">
+                <label>Generate RequestID</label>
+                <button id="http_generateRequestIDBtn" class="btn-primary ">Generate</button>
+            </div>
+        </div>
+        <div>
+            <label>Body (JSON)</label>
+            <textarea id="http_body" style="width: 100%; height: 100px; "></textarea>
+        </div>
+        <div>
+            <button id="http_sendBtn" class="btn-primary">Send request</button>
+        </div>
+    </div>
+    <!-- ============================================== -->
+    <div class="form-group " style="background-color: aliceblue; ">
+        <div>
+            <button id="clearBtn" class="btn-info">Clear</button>
+        </div>
+        <div class="form-row ">
+            <div class="col ">
+                <h4>MQTT Request</h4>
+                <label>Topic</label>
+                <input id="mqttrequest_topic" type="text " class="form-control " readonly>
+                <label>Message</label>
+                <textarea id="mqttrequest_message" style="width: 100%;height: 100px; " readonly></textarea>
+            </div>
+            <div class="col ">
+                <h4>MQTT Receive</h4>
+                <label>Topic</label>
+                <input id="mqttresponse_topic" type="text " class="form-control " readonly>
+                <label>Message</label>
+                <textarea id="mqttresponse_message" style="width: 100%;height: 100px; " readonly></textarea>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    function uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0,
+                v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    $("#http_generateRequestIDBtn").click(function() {
+        $("#http_requestID").val(uuidv4());
+    });
+
+    $("#clearBtn").click(function() {
+        $("#mqttrequest_topic").val("");
+        $("#mqttresponse_topic").val("");
+        $("#mqttresponse_message").val("");
+        $("#mqttrequest_message").val("");
+    });
+
+    $("#mqtt_connectBtn").change(function() {
+        var url, qos, timePubSub, username, password, publishTopic, responseTopic
+        var wantConnect = false;
+        if (this.checked) {
+            wantConnect = true;
+            url = $("#mqtt_url").val();
+            qos = parseInt($("#mqtt_qos").val());
+            timePubSub = parseInt($("#mqtt_timePubSub").val());
+            username = $("#mqtt_username").val();
+            password = $("#mqtt_password").val();
+            publishTopic = $("#mqtt_publishTopic").val();
+            responseTopic = $("#mqtt_responseTopic").val();
+        } else {
+            wantConnect = false;
+            url = "0";
+        }
+        var body = {
+            "Url": url,
+            "Username": username,
+            "Password": password,
+            "QoS": qos,
+            "TimePubSub": timePubSub,
+            "PublishTopic": publishTopic,
+            "SubscribeTopic": responseTopic
+        }
+        $.ajax({
+            url: '/connect',
+            type: 'POST',
+            data: JSON.stringify(body),
+            dataType: 'text',
+            success: function(data) {
+                alert("success");
+                if (wantConnect == true) {
+                    $("#mqtt_connectBtn").prop("checked", true);
+                } else {
+                    $("#mqtt_connectBtn").prop("checked", false);
+                }
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.status + ': ' + xhr.statusText;
+                alert('Error - ' + errorMessage);
+                if (wantConnect == true) {
+                    $("#mqtt_connectBtn").prop("checked", false);
+                } else {
+                    $("#mqtt_connectBtn").prop("checked", true);
+                }
+            },
+            statusCode: {}
+        });
+    });
+
+    $("#http_sendBtn").click(function() {
+        var method = $("#http_method").val();
+        var api = $("#http_api").val();
+        var requestID = $("#http_requestID").val();
+        var body = $("#http_body").val();
+        console.log(method, api, requestID, body);
+
+        $("#mqttrequest_topic").val($("#mqtt_publishTopic").val());
+        $.ajax({
+            url: '/request/body/' + requestID + '/' + method + '/' + api.replaceAll("/", ":"),
+            type: 'POST',
+            data: JSON.stringify(body),
+            dataType: 'text',
+            success: function(data) {
+                $("#mqttrequest_message").val(data);
+            },
+            statusCode: {}
+        });
+
+        $.ajax({
+            url: '/request/topic/' + requestID,
+            type: 'GET',
+            dataType: 'text',
+            success: function(data) {
+                $("#mqttresponse_topic").val(data);
+            },
+            statusCode: {}
+        });
+
+        $.ajax({
+            url: '/request/action/' + requestID + '/' + method + '/' + api.replaceAll("/", ":"),
+            type: 'POST',
+            data: JSON.stringify(body),
+            dataType: 'text',
+            success: function(data) {
+                $("#mqttresponse_message").val(data);
+            },
+            statusCode: {}
+        });
+    });
+</script>
+
+</html>
